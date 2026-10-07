@@ -151,9 +151,11 @@ def run_case(case, catalogue):
         "enough": len(picks) >= expected,
         "links": len(urls) == len(picks) and len(set(urls)) == len(urls),
         "distinct": len({p["catalogue"]["group_id"] for p in found}) == len(found),
-        "real": bool(picks) and len(found) == len(picks),
-        "prices": bool(found) and all(abs(p["stated_price"] - p["catalogue"]["price"]) < 0.5 for p in found),
-        "budget": bool(found) and budget_ok,
+        # With no picks (allowed only for allow_fewer_picks cases; "format" catches the
+        # rest) there is nothing to get wrong, so these pass.
+        "real": len(found) == len(picks),
+        "prices": all(abs(p["stated_price"] - p["catalogue"]["price"]) < 0.5 for p in found),
+        "budget": budget_ok,
         "exclusions": not any(is_excluded(p["catalogue"]["name"], case) for p in found),
         "searched": "semantic_search" in tool_calls,
         "preference": not case.get("expect_listing") or any(
