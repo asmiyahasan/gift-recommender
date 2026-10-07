@@ -20,6 +20,8 @@ Hard checks (a case passes only if all pass):
                  allowed as a "stretch", as the system prompt permits
   exclusions   - nothing matching the case's exclude_keywords
   searched     - the agent called semantic_search at least once
+  preference   - for cases with "expect_listing" (e.g. "Pink"): at least one
+                 pick links a listing whose name contains it
 
 Cases with "allow_fewer_picks": true (nothing suitable in the catalogue)
 can pass with 0 picks, since being honest beats padding.
@@ -52,10 +54,13 @@ from agent.agent import agent
 
 STRETCH = 0.10                           # allowed overshoot for one "stretch" pick
 PRICE_PER_MTOK = {"input": 3.0, "output": 15.0}   # Claude Sonnet, USD per million tokens
-CHECKS = ["format", "enough", "links", "distinct", "real", "prices", "budget", "exclusions", "searched"]
+CHECKS = ["format", "enough", "links", "distinct", "real", "prices", "budget", "exclusions", "searched", "preference"]
 
+# A pick heading: a line starting "**1. Name — $Price", with anything after the
+# price (e.g. "**", " ✨ Stretch Pick**", " *(top of budget)***").
 HEADER_RE = re.compile(
-    r"\*\*\s*(\d)\.\s*(?P<name>.+?)\s*[—–-]+\s*\$\s*(?P<price>[\d,]+(?:\.\d+)?)[^*\n]*\*\*"
+    r"^[ \t]*\*\*\s*(\d)\.\s*(?P<name>.+?)\s*[—–-]+\s*\$\s*(?P<price>[\d,]+(?:\.\d+)?)",
+    re.MULTILINE,
 )
 URL_RE = re.compile(r"https?://(?:www\.)?jbhifi\.com\.au/products/[\w\-%.]+")
 
@@ -151,6 +156,9 @@ def run_case(case, catalogue):
         "budget": bool(found) and budget_ok,
         "exclusions": not any(is_excluded(p["catalogue"]["name"], case) for p in found),
         "searched": "semantic_search" in tool_calls,
+        "preference": not case.get("expect_listing") or any(
+            case["expect_listing"].lower() in re.sub(r"\s+", " ", p["catalogue"]["name"]).lower() for p in found
+        ),
     }
 
     warnings = []

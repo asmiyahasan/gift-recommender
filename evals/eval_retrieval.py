@@ -62,12 +62,12 @@ def budget_case(case):
         "n_results": TOOL_N_RESULTS,
     })
     products = json.loads(raw)
-    variants = [v for p in products for v in p["variants"]]
-    over = [v for v in variants if not case["min_price"] <= v["price"] <= case["max_price"]]
+    over = [p for p in products if not case["min_price"] <= p["price"] <= case["max_price"]]
     return {
         "returned": len(products),
         "relevant_in_budget": sum(
-            any(is_relevant(v["name"], case) and not is_excluded(v["name"], case) for v in p["variants"])
+            any(is_relevant(n, case) and not is_excluded(n, case)
+                for n in [p["listing"], *p.get("other_options", [])])
             for p in products
         ),
         "budget_violations": len(over),

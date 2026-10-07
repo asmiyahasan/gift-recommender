@@ -4,11 +4,15 @@ Agent tools for the gift recommender.
 The catalogue is organised as products (groups) and their variants: one
 product such as "PS5 DualSense Wireless Controller" can have several
 listings that differ only by colour, storage, size, condition or pack size.
-Search works at the product level; each result lists its in-budget variants
-with their exact names, prices and URLs.
+Search works at the product level. Each result has exactly one link: the
+cheapest in-budget variant, or the cheapest one matching the user's stated
+preference (colour, storage, size...) if they gave one. Other in-budget variants are listed as plain text
+(no links), so the agent can mention them but can't recommend the same product
+twice or pair one variant's price with another's link.
 """
 
 import json
+import re
 import sqlite3
 import threading
 
@@ -18,7 +22,7 @@ from langchain_core.tools import tool
 
 load_dotenv()
 
-MAX_VARIANTS_SHOWN = 6  # per product, to keep tool output short
+MAX_OTHER_OPTIONS = 5  # per product, to keep tool output short
 
 # --- Shared resources (loaded once, on first use) ---
 _conn = None
@@ -76,16 +80,45 @@ def _variants(group_ids, min_price, max_price, exclude_keywords=()):
     return out
 
 
-def _product_entry(name, category, variants, **extra):
-    return {
-        "name": name,
+def _norm(text):
+    # Lower-case, collapse non-breaking spaces, and treat grey/gray as the same word.
+    return re.sub(r"\s+", " ", text).lower().replace("grey", "gray")
+
+
+def _choose_variant(variants, prefer):
+    """
+    Pick the variant to link. variants are sorted cheapest first.
+    With preferences, take the cheapest variant matching the most of them.
+    Returns (variant, matched) where matched is True only if every preference matched.
+    """
+    terms = [_norm(t) for t in prefer if t and t.strip()]
+    if not terms:
+        return variants[0], None
+    scores = [sum(t in _norm(v["name"]) for t in terms) for v in variants]
+    best = max(scores)
+    if best == 0:
+        return variants[0], False
+    return variants[scores.index(best)], best == len(terms)
+
+
+def _product_entry(name, category, variants, prefer=(), **extra):
+    """One product: one in-budget variant with its link, others as text."""
+    pick, matched = _choose_variant(variants, prefer)
+    others = [v for v in variants if v is not pick]
+    entry = {
+        "product": name,
         "category": category,
-        "price_from": variants[0]["price"],
-        "price_to": variants[-1]["price"],
-        "variants": variants[:MAX_VARIANTS_SHOWN],
-        **({"more_variants": len(variants) - MAX_VARIANTS_SHOWN} if len(variants) > MAX_VARIANTS_SHOWN else {}),
+        "listing": pick["name"],
+        "price": pick["price"],
+        "url": pick["url"],
+        **({"matched_preference": matched} if matched is not None else {}),
         **extra,
     }
+    if others:
+        entry["other_options"] = [f"{v['name']} (${v['price']:g})" for v in others[:MAX_OTHER_OPTIONS]]
+        if len(others) > MAX_OTHER_OPTIONS:
+            entry["other_options"].append(f"...and {len(others) - MAX_OTHER_OPTIONS} more")
+    return entry
 
 
 # --- Tools ---
@@ -96,6 +129,7 @@ def semantic_search(
     min_price: float = 0,
     max_price: float = 9999,
     n_results: int = 8,
+    prefer: list[str] = [],
 ) -> str:
     """
     Search the product catalogue semantically using a description of the gift recipient.
@@ -103,18 +137,25 @@ def semantic_search(
     The query should describe the PERSON (their personality, hobbies, lifestyle, needs),
     NOT the product. The search matches against 'who this product is perfect for'.
 
-    Each result is one product. Its "variants" list the in-budget colours / sizes /
-    storage options with their exact name, price and URL. Recommend a specific variant.
+    Each result is one product with ONE listing, price and URL (its cheapest
+    in-budget option). "other_options" lists other colours / sizes / storage as
+    plain text only — mention them if useful, but don't recommend them separately.
+
+    If the user wants a specific colour, storage size, size or condition, pass it
+    in `prefer` (e.g. ["pink"] or ["256GB", "cellular"]). The listing will then be
+    the cheapest in-budget variant matching it, and "matched_preference" says
+    whether every preference was matched (false = not available in that option).
 
     Args:
         query: Description of the person receiving the gift
         min_price: Minimum price in AUD (default 0)
         max_price: Maximum price in AUD (default 9999)
         n_results: Number of products to return (default 8)
+        prefer: Words the chosen variant's name should contain, e.g. ["pink"]
 
     Returns:
-        JSON list of products with name, category, price range, why_it_fits,
-        relevance, and in-budget variants
+        JSON list of products with product, category, listing, price, url,
+        why_it_fits, relevance, and other_options
     """
     collection = get_collection()
 
@@ -137,6 +178,7 @@ def semantic_search(
             continue
         products.append(_product_entry(
             meta["name"], meta["category"], v,
+            prefer=prefer,
             why_it_fits=results["documents"][0][i],
             relevance=round(1 - results["distances"][0][i], 3),
         ))
@@ -150,6 +192,7 @@ def filter_products(
     exclude_categories: list[str] = [],
     include_categories: list[str] = [],
     exclude_keywords: list[str] = [],
+    prefer: list[str] = [],
 ) -> str:
     """
     Filter products from the database using structured constraints.
@@ -166,9 +209,11 @@ def filter_products(
         exclude_categories: List of category slugs to exclude
         include_categories: List of category slugs to include (empty = all)
         exclude_keywords: Words to exclude from product names
+        prefer: Words the chosen variant's name should contain, e.g. ["pink"]
 
     Returns:
-        JSON list of up to 20 random matching products, each with its matching variants
+        JSON list of up to 20 random matching products, each with one listing,
+        price and url, plus other_options as text
     """
     sql = "SELECT DISTINCT group_id FROM products WHERE price BETWEEN ? AND ?"
     params = [min_price, max_price]
@@ -195,7 +240,7 @@ def filter_products(
             )
         } if group_ids else {}
         products = [
-            _product_entry(groups[gid]["group_name"], groups[gid]["category"], variants[gid])
+            _product_entry(groups[gid]["group_name"], groups[gid]["category"], variants[gid], prefer=prefer)
             for gid in group_ids
             if gid in groups and variants.get(gid)
         ]

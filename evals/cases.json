@@ -124,6 +124,13 @@
     "relevant": ["Hue", "Photo Frame", "Garage Door"]
   },
   {
+    "id": "pink_headphones",
+    "prompt": "My niece is 16 and loves everything pink. She wants new headphones. Under $200.",
+    "min_price": 0, "max_price": 200,
+    "relevant": ["Headphones", "Earbuds", "Buds", "AirPods"],
+    "expect_listing": "Pink"
+  },
+  {
     "id": "secret_santa",
     "prompt": "Secret Santa for a coworker I don't know well. Safe choice, $20 to $50.",
     "min_price": 20, "max_price": 50,
