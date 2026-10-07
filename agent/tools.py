@@ -69,9 +69,13 @@ def semantic_search(
     """
     collection = get_collection()
 
+    # Filter by price inside the vector search, so we get the n_results closest
+    # in-budget products. (Fetching a fixed number and filtering afterwards often
+    # left only one or two results for tight budgets.)
     results = collection.query(
         query_texts=[query],
-        n_results=min(n_results * 3, 30),  # oversample, then filter by price
+        n_results=n_results,
+        where={"$and": [{"price": {"$gte": min_price}}, {"price": {"$lte": max_price}}]},
         include=["metadatas", "distances", "documents"],
     )
 

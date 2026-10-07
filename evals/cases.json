@@ -76,7 +76,9 @@
     "id": "dog_escape_artist",
     "prompt": "My neighbour's dog keeps escaping the yard and she panics every time. Under $100.",
     "min_price": 0, "max_price": 100,
-    "relevant": ["Tractive", "GPS Tracker"]
+    "relevant": ["Tractive", "GPS Tracker"],
+    "allow_fewer_picks": true,
+    "note": "Only one dog tracker is in the catalogue. Check whether the agent pads with weak picks or gives fewer."
   },
   {
     "id": "uni_student_notes",
@@ -133,6 +135,7 @@
     "prompt": "My dad loves cooking and wants something for the kitchen. $50 to $150.",
     "min_price": 50, "max_price": 150,
     "relevant": null,
+    "allow_fewer_picks": true,
     "note": "Nothing kitchen-related is in the catalogue. The agent should say so honestly. Review this one by hand."
   }
 ]

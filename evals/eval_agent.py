@@ -15,6 +15,13 @@ Hard checks (a case passes only if all pass):
   exclusions   - nothing matching the case's exclude_keywords
   searched     - the agent called semantic_search at least once
 
+Cases with "allow_fewer_picks": true (few or no good fits in the catalogue)
+pass format/three_picks with 0-3 picks, since being honest beats padding.
+
+Warnings (shown, not pass/fail):
+  stretch_label - a pick heading calls something a "stretch" but nothing is
+                  over budget (the system prompt reserves it for over-budget)
+
 Also reported, not pass/fail: how many picks match the case's "relevant"
 patterns, tokens used, estimated cost, and time taken.
 
@@ -40,7 +47,7 @@ PRICE_PER_MTOK = {"input": 3.0, "output": 15.0}   # Claude Sonnet, USD per milli
 CHECKS = ["format", "three_picks", "real", "prices", "budget", "exclusions", "searched"]
 
 HEADER_RE = re.compile(
-    r"\*\*\s*(\d)\.\s*(?P<name>.+?)\s*[—–-]+\s*\$\s*(?P<price>[\d,]+(?:\.\d+)?)\s*\*\*"
+    r"\*\*\s*(\d)\.\s*(?P<name>.+?)\s*[—–-]+\s*\$\s*(?P<price>[\d,]+(?:\.\d+)?)[^*\n]*\*\*"
 )
 URL_RE = re.compile(r"https?://(?:www\.)?jbhifi\.com\.au/products/[\w\-%.]+")
 
@@ -109,9 +116,13 @@ def run_case(case, catalogue):
     real_prices = [p["catalogue"]["price"] for p in found]
     budget_ok, budget_note = check_budget(real_prices, case)
 
+    if case.get("allow_fewer_picks"):
+        right_count = len(picks) <= 3
+    else:
+        right_count = len(picks) == 3
     checks = {
-        "format": len(picks) == 3,
-        "three_picks": len(picks) == 3 and len(urls) == 3 and len(set(urls)) == 3,
+        "format": right_count,
+        "three_picks": right_count and len(urls) == len(picks) and len(set(urls)) == len(urls),
         "real": bool(picks) and len(found) == len(picks),
         "prices": bool(found) and all(abs(p["stated_price"] - p["catalogue"]["price"]) < 0.5 for p in found),
         "budget": bool(found) and budget_ok,
@@ -119,9 +130,15 @@ def run_case(case, catalogue):
         "searched": "semantic_search" in tool_calls,
     }
 
+    warnings = []
+    headings = " ".join(m.group(0) for m in re.finditer(r"^\s*\*\*\s*\d\..*$", reply, re.MULTILINE))
+    if re.search(r"stretch", headings, re.IGNORECASE) and budget_note != "stretch":
+        warnings.append("stretch_label")
+
     return {
         "id": case["id"],
         "passed": all(checks.values()),
+        "warnings": warnings,
         "checks": checks,
         "budget_note": budget_note,
         "relevant_picks": sum(is_relevant(p["catalogue"]["name"], case) for p in found)
@@ -173,6 +190,7 @@ def main():
         rel = r.get("relevant_picks")
         rel = "-" if rel is None else f"{rel}/3"
         extra = f"  ({r['budget_note']})" if r.get("budget_note") not in (None, "ok") else ""
+        extra += "".join(f"  [warn: {w}]" for w in r.get("warnings", []))
         extra += f"  ERROR {r['error'][:40]}" if "error" in r else ""
         print(f"{r['id']:26} {marks}  {rel:>8}  ${r['cost_usd']:.3f}{extra}")
     print("-" * 100)
@@ -185,6 +203,7 @@ def main():
         "relevant_pick_rate": (lambda rs: sum(rs) / (3 * len(rs)) if rs else None)(
             [r["relevant_picks"] for r in rows if r.get("relevant_picks") is not None]),
         "errors": sum("error" in r for r in rows),
+        "warnings": sum(len(r.get("warnings", [])) for r in rows),
         "total_cost_usd": round(sum(r["cost_usd"] for r in rows), 3),
         "avg_seconds": round(sum(r["seconds"] for r in rows) / n, 1),
     }
