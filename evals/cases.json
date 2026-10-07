@@ -3,7 +3,7 @@
     "id": "runner",
     "prompt": "My partner is training for her first marathon and tracks every run obsessively on her phone. Budget under $500.",
     "min_price": 0, "max_price": 500,
-    "relevant": ["Forerunner", "Shokz", "Fitbit", "WHOOP", "Polar", "Apple Watch", "VivoActive", "Galaxy Watch", "Instinct", "WATCH FIT", "fenix", "epix"]
+    "relevant": ["Forerunner", "Shokz", "Fitbit", "WHOOP", "Polar Loop", "Apple Watch", "VivoActive", "Galaxy Watch", "Instinct", "WATCH FIT", "fenix", "epix"]
   },
   {
     "id": "ps5_teen",

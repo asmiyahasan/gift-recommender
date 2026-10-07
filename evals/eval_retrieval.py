@@ -3,7 +3,8 @@ Retrieval eval: how good is semantic search on its own?
 
 For each test persona in evals/cases.json, this queries the ChromaDB index
 directly (no LLM, no API calls) and checks whether products matching the
-case's "relevant" patterns come back near the top.
+case's "relevant" patterns come back near the top. Each result is a product
+group; it counts as relevant if any of its variants' names match.
 
 Metrics (over the top K results, ignoring budget):
   hit@3      - at least one relevant product in the top 3
@@ -12,8 +13,9 @@ Metrics (over the top K results, ignoring budget):
   MRR        - 1 / rank of the first relevant product (0 if none in top K)
 
 It also runs the agent's actual semantic_search tool with each case's budget
-and reports how many results survive the price filter, since that tool
-over-fetches then filters by price and can come back short.
+and reports how many products it returns, how many of those are relevant
+(counting only in-budget, non-excluded variants), and any variant it returns
+that is outside the budget.
 
 Usage (from anywhere):
   python evals/eval_retrieval.py
@@ -24,20 +26,24 @@ Usage (from anywhere):
 import argparse
 import json
 
-from common import is_excluded, is_relevant, load_cases, pct, save_results
+from common import is_excluded, is_relevant, load_cases, load_variant_names, pct, save_results
 from agent.tools import get_collection, semantic_search
 
 TOOL_N_RESULTS = 8  # the tool's default, which is what the agent normally gets
 
 
-def rank_case(collection, case, k):
+def rank_case(collection, case, k, variant_names):
     res = collection.query(
         query_texts=[case["prompt"]],
         n_results=k,
         include=["metadatas", "distances"],
     )
-    ranked = [m.get("name", "") for m in res["metadatas"][0]]
-    flags = [is_relevant(n, case) for n in ranked]
+    metas = res["metadatas"][0]
+    ranked = [m.get("name", "") for m in metas]
+    flags = [
+        any(is_relevant(n, case) for n in variant_names.get(m.get("group_id"), [m.get("name", "")]))
+        for m in metas
+    ]
     first = next((i for i, f in enumerate(flags) if f), None)
     return {
         "top": [{"name": n, "relevant": f} for n, f in zip(ranked, flags)],
@@ -56,11 +62,13 @@ def budget_case(case):
         "n_results": TOOL_N_RESULTS,
     })
     products = json.loads(raw)
-    over = [p for p in products if not case["min_price"] <= p["price"] <= case["max_price"]]
+    variants = [v for p in products for v in p["variants"]]
+    over = [v for v in variants if not case["min_price"] <= v["price"] <= case["max_price"]]
     return {
         "returned": len(products),
         "relevant_in_budget": sum(
-            is_relevant(p["name"], case) and not is_excluded(p["name"], case) for p in products
+            any(is_relevant(v["name"], case) and not is_excluded(v["name"], case) for v in p["variants"])
+            for p in products
         ),
         "budget_violations": len(over),
     }
@@ -75,10 +83,11 @@ def main():
 
     cases = [c for c in load_cases(args.case) if c.get("relevant")]
     collection = get_collection()
+    variant_names = load_variant_names()
 
     rows = []
     for case in cases:
-        r = {"id": case["id"], **rank_case(collection, case, args.k), "tool": budget_case(case)}
+        r = {"id": case["id"], **rank_case(collection, case, args.k, variant_names), "tool": budget_case(case)}
         rows.append(r)
         if args.verbose:
             print(f"\n{case['id']}: {case['prompt']}")

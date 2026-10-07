@@ -5,6 +5,7 @@ Shared helpers for the eval scripts.
 import json
 import os
 import re
+import sqlite3
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -51,6 +52,16 @@ def is_excluded(name, case):
     # Plain substring match: "headset" should catch "Headsets" and "Headset)".
     name = _clean(name)
     return any(re.search(re.escape(w), name, re.IGNORECASE) for w in case.get("exclude_keywords", []))
+
+
+def load_variant_names():
+    """{group_id: [listing names]} from the products table."""
+    conn = sqlite3.connect(ROOT / "data" / "products.db")
+    out = {}
+    for gid, name in conn.execute("SELECT group_id, name FROM products"):
+        out.setdefault(gid, []).append(name)
+    conn.close()
+    return out
 
 
 def save_results(kind, payload):

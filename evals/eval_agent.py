@@ -7,7 +7,9 @@ them against the product database.
 
 Hard checks (a case passes only if all pass):
   format       - 3 numbered picks in the "**1. Name — $Price**" format
-  three_picks  - exactly 3 different products, each with a product URL
+  three_picks  - exactly 3 different listings, each with a product URL
+  distinct     - no two picks are variants of the same product (e.g. two
+                 colours of the same controller)
   real         - every URL exists in the catalogue (no made-up products)
   prices       - the price the agent states matches the catalogue
   budget       - every pick within budget; one pick up to 10% over is
@@ -44,7 +46,7 @@ from agent.agent import agent
 
 STRETCH = 0.10                           # allowed overshoot for one "stretch" pick
 PRICE_PER_MTOK = {"input": 3.0, "output": 15.0}   # Claude Sonnet, USD per million tokens
-CHECKS = ["format", "three_picks", "real", "prices", "budget", "exclusions", "searched"]
+CHECKS = ["format", "three_picks", "distinct", "real", "prices", "budget", "exclusions", "searched"]
 
 HEADER_RE = re.compile(
     r"\*\*\s*(\d)\.\s*(?P<name>.+?)\s*[—–-]+\s*\$\s*(?P<price>[\d,]+(?:\.\d+)?)[^*\n]*\*\*"
@@ -54,9 +56,9 @@ URL_RE = re.compile(r"https?://(?:www\.)?jbhifi\.com\.au/products/[\w\-%.]+")
 
 def load_catalogue():
     conn = sqlite3.connect("data/products.db")
-    rows = conn.execute("SELECT url, name, price, category FROM products").fetchall()
+    rows = conn.execute("SELECT url, name, price, category, group_id FROM products").fetchall()
     conn.close()
-    return {norm_url(u): {"name": n, "price": p, "category": c} for u, n, p, c in rows}
+    return {norm_url(u): {"name": n, "price": p, "category": c, "group_id": g} for u, n, p, c, g in rows}
 
 
 def norm_url(url):
@@ -123,6 +125,7 @@ def run_case(case, catalogue):
     checks = {
         "format": right_count,
         "three_picks": right_count and len(urls) == len(picks) and len(set(urls)) == len(urls),
+        "distinct": len({p["catalogue"]["group_id"] for p in found}) == len(found),
         "real": bool(picks) and len(found) == len(picks),
         "prices": bool(found) and all(abs(p["stated_price"] - p["catalogue"]["price"]) < 0.5 for p in found),
         "budget": bool(found) and budget_ok,

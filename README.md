@@ -7,9 +7,10 @@ The catalogue is ~230 products scraped from JB Hi-Fi (Australia) across 7 catego
 ## How it works
 
 1. **Scrape** — `scrapers/jbhifi.py` pulls product listings from JB Hi-Fi into `data/jb_raw.csv`.
-2. **Enrich** — `data/enrich.py` uses Claude Haiku to rewrite each product as a "who this is perfect for" persona, saved to `data/jb_enriched.csv`.
-3. **Index** — `data/index.py` loads the enriched data into SQLite (`data/products.db`, for filtering) and ChromaDB (`chroma_db/`, for semantic search) using the local `all-MiniLM-L6-v2` embedding model.
-4. **Chat** — `app.py` runs the Streamlit UI; the agent in `agent/` calls `semantic_search`, `filter_products`, and `get_categories` tools to build recommendations.
+2. **Group** — `data/group.py` uses Claude Haiku to group listings that are variants of the same product (colour, storage, size, refurbished grade, Wi-Fi vs Cellular, pack size) into `data/jb_grouped.csv`. Different models and generations (e.g. iPad 9th vs 10th Gen, DualSense vs DualSense Edge) stay separate.
+3. **Enrich** — `data/enrich.py` uses Claude Haiku to write one "who this is perfect for" persona per product, saved to `data/jb_enriched.csv`.
+4. **Index** — `data/index.py` loads SQLite (`data/products.db`: a `products` table with one row per listing and a `groups` table with one row per product) and ChromaDB (`chroma_db/`: one entry per product, embedded locally with `all-MiniLM-L6-v2`).
+5. **Chat** — `app.py` runs the Streamlit UI; the agent in `agent/` calls `semantic_search`, `filter_products`, and `get_categories`. Search returns one result per product with its in-budget variants, and the agent recommends one specific variant of each.
 
 ## Setup
 
@@ -56,18 +57,21 @@ python evals/eval_agent.py --limit 3      # quick check
 python evals/eval_agent.py                # all cases
 ```
 
-Results, including every agent reply, are saved to `evals/results/`. The `out_of_catalogue_cooking` case has no right answer in the catalogue and should be read by hand to see whether the agent says so honestly.
+The agent eval also checks that no two picks are variants of the same product. Results, including every agent reply, are saved to `evals/results/`. The `out_of_catalogue_cooking` case has no right answer in the catalogue and should be read by hand to see whether the agent says so honestly.
 
 ## Rebuilding the catalogue (optional)
 
-A pre-built catalogue is included in the repo (`data/`, `chroma_db/`), so you can skip this. Only run it to refresh the products. Note that the enrich step calls the Claude API for every product.
+A pre-built catalogue is included in the repo (`data/`, `chroma_db/`), so you can skip this. Run it to refresh the products, or after changing the grouping or enrichment. The group and enrich steps call the Claude API (Haiku, a few cents for the whole catalogue).
 
 ```bash
 playwright install chromium
-python scrapers/jbhifi.py
+python scrapers/jbhifi.py     # optional: re-scrape for fresh products and prices
+python data/group.py          # prints every product with variants: check the groups look right
 python data/enrich.py
 python data/index.py
 ```
+
+If `group.py` merges or splits something wrongly, edit `group_name` and `group_id` for those rows in `data/jb_grouped.csv`, then re-run `enrich.py` and `index.py`.
 
 ## Disclaimer
 
