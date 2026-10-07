@@ -134,7 +134,8 @@
     "id": "secret_santa",
     "prompt": "Secret Santa for a coworker I don't know well. Safe choice, $20 to $50.",
     "min_price": 20, "max_price": 50,
-    "relevant": null
+    "relevant": null,
+    "note": "Vague request: should give 3 widely appealing picks straight away (no questions first), stating any assumptions. Check the picks are sensible."
   },
   {
     "id": "out_of_catalogue_cooking",
