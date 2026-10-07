@@ -5,9 +5,9 @@ Agent tools for the gift recommender.
 import os
 import json
 import sqlite3
+import threading
 import pandas as pd
 import chromadb
-from chromadb.utils.embedding_functions import VoyageAIEmbeddingFunction
 from langchain_core.tools import tool
 from dotenv import load_dotenv
 
@@ -16,22 +16,30 @@ load_dotenv()
 # --- Shared resources (loaded once at import) ---
 _conn = None
 _collection = None
+# The agent can run several tool calls in parallel threads. Without a lock, two
+# threads can both see _collection as None and open chroma_db at the same time,
+# which makes ChromaDB raise KeyError: 'chroma_db'.
+_init_lock = threading.Lock()
 
 
 def get_db():
     global _conn
     if _conn is None:
-        _conn = sqlite3.connect("data/products.db", check_same_thread=False)
+        with _init_lock:
+            if _conn is None:
+                _conn = sqlite3.connect("data/products.db", check_same_thread=False)
     return _conn
 
 
 def get_collection():
     global _collection
     if _collection is None:
-        from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
-        chroma = chromadb.PersistentClient(path="chroma_db")
-        ef = SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
-        _collection = chroma.get_collection("products", embedding_function=ef)
+        with _init_lock:
+            if _collection is None:
+                from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
+                chroma = chromadb.PersistentClient(path="chroma_db")
+                ef = SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
+                _collection = chroma.get_collection("products", embedding_function=ef)
     return _collection
 
 

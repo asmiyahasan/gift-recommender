@@ -1,0 +1,138 @@
+[
+  {
+    "id": "runner",
+    "prompt": "My partner is training for her first marathon and tracks every run obsessively on her phone. Budget under $500.",
+    "min_price": 0, "max_price": 500,
+    "relevant": ["Forerunner", "Shokz", "Fitbit", "WHOOP", "Polar", "Apple Watch", "VivoActive", "Galaxy Watch", "Instinct", "WATCH FIT", "fenix", "epix"]
+  },
+  {
+    "id": "ps5_teen",
+    "prompt": "My 15 year old nephew plays PS5 every night with his mates online. Something between $50 and $150.",
+    "min_price": 50, "max_price": 150,
+    "relevant": ["PS5", "PlayStation", "DualSense"]
+  },
+  {
+    "id": "switch_traveller",
+    "prompt": "My sister just got a Nintendo Switch 2 and takes it on every flight. Under $100.",
+    "min_price": 0, "max_price": 100,
+    "relevant": ["Switch 2"]
+  },
+  {
+    "id": "pc_fps_has_headset",
+    "prompt": "My brother is 24 and super competitive at PC shooters. He already has a good headset so no headsets please. $100 to $400.",
+    "min_price": 100, "max_price": 400,
+    "exclude_keywords": ["headset"],
+    "relevant": ["Gaming Mouse", "Gaming Keyboard"]
+  },
+  {
+    "id": "sim_racer",
+    "prompt": "My dad is obsessed with Formula 1 and plays racing games on PlayStation. $300 to $700.",
+    "min_price": 300, "max_price": 700,
+    "relevant": ["Racing", "Steering Wheel", "Moza"]
+  },
+  {
+    "id": "frequent_flyer",
+    "prompt": "My boss flies Melbourne to Sydney twice a week and complains about noisy planes. $250 to $600.",
+    "min_price": 250, "max_price": 600,
+    "relevant": ["Noise Cancelling", "QuietComfort", "AirPods Pro", "AirPods 4 with Active", "Momentum", "Buds4 Pro", "Buds3 Pro"]
+  },
+  {
+    "id": "party_host",
+    "prompt": "My housemate is always hosting backyard barbecues and beach days with friends. $100 to $400.",
+    "min_price": 100, "max_price": 400,
+    "relevant": ["Speaker", "PartyBox", "Flip", "Charge"]
+  },
+  {
+    "id": "movie_buff",
+    "prompt": "My parents just bought a big new TV and love watching movies together on Friday nights. $100 to $800.",
+    "min_price": 100, "max_price": 800,
+    "relevant": ["Soundbar", "Sound Bar", "Home Theatre"]
+  },
+  {
+    "id": "travel_vlogger",
+    "prompt": "My friend is starting a travel YouTube channel and films everything on her phone right now. $300 to $1100.",
+    "min_price": 300, "max_price": 1100,
+    "relevant": ["Osmo", "GoPro", "Insta360", "ZV-E10", "Vlog", "Mic"]
+  },
+  {
+    "id": "aspiring_photographer",
+    "prompt": "My cousin just finished a photography short course and wants to get serious. Budget $900 to $2000.",
+    "min_price": 900, "max_price": 2000,
+    "relevant": ["Mirrorless", "DSLR", "RX100", "Cybershot"]
+  },
+  {
+    "id": "grandma_photos",
+    "prompt": "My grandma lives interstate and misses seeing photos of the grandkids. She's not techy at all. Under $200.",
+    "min_price": 0, "max_price": 200,
+    "relevant": ["Photo Frame", "Frameo"]
+  },
+  {
+    "id": "new_homeowner",
+    "prompt": "My friends just bought their first house and keep getting parcels stolen from the front door. $80 to $400.",
+    "min_price": 80, "max_price": 400,
+    "relevant": ["Doorbell", "Security", "Tapo", "SoloCam", "EufyCam", "Nest Outdoor"]
+  },
+  {
+    "id": "dog_escape_artist",
+    "prompt": "My neighbour's dog keeps escaping the yard and she panics every time. Under $100.",
+    "min_price": 0, "max_price": 100,
+    "relevant": ["Tractive", "GPS Tracker"]
+  },
+  {
+    "id": "uni_student_notes",
+    "prompt": "My little sister is starting uni and wants to take notes and read lecture slides on something lighter than a laptop. $150 to $350.",
+    "min_price": 150, "max_price": 350,
+    "relevant": ["iPad"]
+  },
+  {
+    "id": "eco_commuter",
+    "prompt": "My housemate wants to stop driving to work, it's only 6km away, and he cares about the environment. $500 to $1000.",
+    "min_price": 500, "max_price": 1000,
+    "relevant": ["Scooter", "KickScooter"]
+  },
+  {
+    "id": "sleep_nerd",
+    "prompt": "My husband is obsessed with optimising his sleep and recovery data. He hates bulky watches. $250 to $650.",
+    "min_price": 250, "max_price": 650,
+    "relevant": ["WHOOP", "Oura", "Polar Loop", "Fitbit Air"]
+  },
+  {
+    "id": "road_cyclist",
+    "prompt": "My uncle rides his road bike 200km every weekend and loves gadgets. $600 to $900.",
+    "min_price": 600, "max_price": 900,
+    "relevant": ["Oakley", "Vanguard", "Garmin"]
+  },
+  {
+    "id": "family_organiser",
+    "prompt": "My sister-in-law runs a household of five and can never keep track of everyone's schedules. $300 to $600.",
+    "min_price": 300, "max_price": 600,
+    "relevant": ["Calendar", "Echo Show", "Smart Display"]
+  },
+  {
+    "id": "not_apple_music",
+    "prompt": "My friend listens to music all day at work but refuses to buy anything from Apple. $150 to $400.",
+    "min_price": 150, "max_price": 400,
+    "exclude_keywords": ["Apple", "AirPods"],
+    "relevant": ["Headphones", "Earbuds", "Buds", "Speaker", "Shokz"]
+  },
+  {
+    "id": "no_cameras_security",
+    "prompt": "My mum wants to make her home smarter but is creeped out by cameras, so no cameras or doorbells. Under $200.",
+    "min_price": 0, "max_price": 200,
+    "exclude_keywords": ["Camera", "Doorbell"],
+    "relevant": ["Hue", "Photo Frame", "Garage Door"]
+  },
+  {
+    "id": "secret_santa",
+    "prompt": "Secret Santa for a coworker I don't know well. Safe choice, $20 to $50.",
+    "min_price": 20, "max_price": 50,
+    "relevant": null
+  },
+  {
+    "id": "out_of_catalogue_cooking",
+    "prompt": "My dad loves cooking and wants something for the kitchen. $50 to $150.",
+    "min_price": 50, "max_price": 150,
+    "relevant": null,
+    "note": "Nothing kitchen-related is in the catalogue. The agent should say so honestly. Review this one by hand."
+  }
+]
