@@ -77,7 +77,6 @@
     "prompt": "My neighbour's dog keeps escaping the yard and she panics every time. Under $100.",
     "min_price": 0, "max_price": 100,
     "relevant": ["Tractive", "GPS Tracker"],
-    "allow_fewer_picks": true,
     "note": "Only one dog tracker is in the catalogue. Check whether the agent pads with weak picks or gives fewer."
   },
   {
